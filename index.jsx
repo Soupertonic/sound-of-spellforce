@@ -43,10 +43,15 @@ function App() {
   const [playing, setPlaying] = createSignal(false)
   const [currentlyPlaying, setCurrentlyPlaying] = createSignal(undefined)
   const [selectedBitrate, setSelectedBitrate] = createSignal(128000)
+  const [volume, setVolume] = createSignal(undefined)
   const [playlists] = createResource(fetchPlaylists)
   const [playbackTime, setPlaybackTime] = createSignal({ current: -1, currentFormatted: "", duration: -1, durationFormatted: "" })
 
   onMount(() => {
+    const volumeString = localStorage.getItem('volume') || '0.5'
+    const volume = parseFloat(volumeString)
+    setVolume(volume)
+    audio.volume = volume
     audio.addEventListener('ended', () => nextSong())
     audio.addEventListener('timeupdate', () => {
       setPlaybackTime({
@@ -73,6 +78,13 @@ function App() {
       audio.pause()
     }
     setPlaying(audio.paused)
+  }
+
+  const changeVolume = (event) => {
+    const volume = parseFloat(event.currentTarget.value)
+    audio.volume = volume
+    setVolume(volume)
+    localStorage.setItem('volume', volume)
   }
 
   const changeBitrate = (event) => {
@@ -194,6 +206,10 @@ function App() {
               <progress onClick={[seek]} ref={progress} class="w-full" value={playbackTime().current} max={playbackTime().duration}>
               </progress>
               */}
+            </div>
+            <div class="flex flex-col justify-center gap-1">
+              <label class="text-sm font-medium text-gray-500">Volume</label>
+              <input onInput={[changeVolume]} type="range" step="0.01" min="0" max="1" value={volume()} />
             </div>
             <div class="flex flex-col">
               <label class="text-sm font-medium text-gray-500">Select Bitrate:</label>
