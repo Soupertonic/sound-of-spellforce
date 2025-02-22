@@ -51,6 +51,13 @@ function App() {
     const volumeString = localStorage.getItem('volume') || '0.5'
     const volume = parseFloat(volumeString)
     setVolume(volume)
+    document.addEventListener('keyup', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const keyCodeIsNotWhitespace = event.keyCode != 32
+      if (keyCodeIsNotWhitespace) return 
+      togglePlay()
+    })
     audio.volume = volume
     audio.addEventListener('ended', () => nextSong())
     audio.addEventListener('timeupdate', () => {
