@@ -5,19 +5,22 @@ import Hls from 'hls.js'
 import WFPlayer from 'wfplayer'
 import './index.css'
 
-if (Hls.isSupported()) {
-  render(() => <App />, document.getElementById('root'));
-} else {
-  render(() => <AppDontWork />, document.getElementById('root'));
-}
+let playlists
+
+(async () => {
+  const playlistsUnsorted = await (await fetch('https://runebound.spellforce.info/public/sos/music/playlists.json')).json();
+  playlists = playlistsUnsorted.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()))
+
+  if (Hls.isSupported()) {
+    render(() => <App />, document.getElementById('root'));
+  } else {
+    render(() => <AppDontWork />, document.getElementById('root'));
+  }
+})()
+
 
 const getTimeFloatFormatted = (float) => {
   return Math.trunc(float / 60).toString() + ":" + ("0" + Math.trunc(float % 60).toString()).slice(-2)
-}
-
-async function fetchPlaylists() {
-  const playlists = (await fetch('https://runebound.spellforce.info/public/sos/music/playlists.json')).json();
-  return playlists;
 }
 
 function AppDontWork() {
@@ -37,15 +40,7 @@ function App() {
   const [currentlyPlaying, setCurrentlyPlaying] = createSignal(undefined)
   const [selectedBitrate, setSelectedBitrate] = createSignal(128000)
   const [volume, setVolume] = createSignal(undefined)
-  const [playlists, {mutate: mutatePlaylists}] = createResource(fetchPlaylists)
   const [playbackTime, setPlaybackTime] = createSignal({ current: -1, currentFormatted: "", duration: -1, durationFormatted: "" })
-
-  createEffect(() => {
-    const playlists2 = playlists()
-    if (playlists2 == undefined) return
-    const playlistsSorted = playlists2.sort((a, b) => a.title.localeCompare(b.title))
-    mutatePlaylists(playlistsSorted)
-  })
 
   onMount(() => {
     const volumeString = localStorage.getItem('volume') || '0.25'
@@ -103,15 +98,15 @@ function App() {
   }
 
   const previousSong = () => {
-    const previousPlaylistIndex = playlists().findIndex(playlist => playlist.title === currentlyPlaying().title) - 1
-    const previousPlaylist = playlists()[previousPlaylistIndex]
+    const previousPlaylistIndex = playlists.findIndex(playlist => playlist.title === currentlyPlaying().title) - 1
+    const previousPlaylist = playlists[previousPlaylistIndex]
     if (!previousPlaylist) return
     playSong(previousPlaylist)
   }
 
   const nextSong = () => {
-    const nextPlaylistIndex = playlists().findIndex(playlist => playlist.title === currentlyPlaying().title) + 1
-    const nextPlaylist = playlists()[nextPlaylistIndex]
+    const nextPlaylistIndex = playlists.findIndex(playlist => playlist.title === currentlyPlaying().title) + 1
+    const nextPlaylist = playlists[nextPlaylistIndex]
     if (!nextPlaylist) return
     playSong(nextPlaylist)
   }
@@ -148,7 +143,7 @@ function App() {
       <audio ref={audio}></audio>
       <div class="flex flex-col items-center h-screen">
         <div class="flex-1 overflow-scroll grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full p-8">
-          <For each={playlists()}>
+          <For each={playlists}>
             {(playlist, index) => (
               <div onClick={[playSong, playlist]} class="bg-gray-50 flex flex-1 justify-between px-5 cursor-pointer py-3 rounded hover:bg-gray-100">
                 <div class="flex gap-8 items-center">
